@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  auth-db:
+    image: postgres
+    restart: unless-stopped
+    volumes:
+      - auth-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/auth/
+    ports:
+      - "5432:5432"
+    networks:
+      - network-v2
+
+  auth-server:
+    image: quay.io/keycloak/keycloak:26.0.6
+    environment:
+      DB_VENDOR: POSTGRES
+      DB_ADDR: postgres
+      DB_DATABASE: keycloak
+      DB_USER: keycloak
+      DB_SCHEMA: public
+      DB_PASSWORD: password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: 123456
+      JAVA_OPTS_APPEND: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"
+      - "5005:5005"
+    depends_on:
+      auth-db:
+        condition: service_started
+    volumes:
+      - ./target/deploy:/opt/keycloak/providers/
+      - ./src/main/resources/theme:/opt/keycloak/themes/
+    networks:
+      - network-v2
+
+networks:
+  network-v2:
+
+volumes:
+  auth-db:
